@@ -1,0 +1,391 @@
+'''ITCH data analysis module.
+
+The functions in the module extract the midpoint price and trade signs from the
+order book in the ITCH data.
+
+This script requires the following modules:
+    * numpy
+    * pandas
+    * itch_data_tools_data_extract
+
+The module contains the following functions:
+    * itch_midpoint_data - extracts the midpoint price of a day.
+    * itch_trade_signs_data - extracts the trade signs of a day.
+    * main - the main function of the script.
+
+.. moduleauthor:: Juan Camilo Henao Londono <www.github.com/juanhenao21>
+'''
+
+# -----------------------------------------------------------------------------
+# Modules
+
+import gzip
+import numpy as np
+import os
+import pandas as pd
+import pickle
+
+import itch_data_tools_data_extraction
+
+# -----------------------------------------------------------------------------
+
+
+def itch_midpoint_millisecond_data(ticker, date):
+    """Extracts the midpoint price data for a day in milliseconds.
+
+    Extracts the midpoint price from the TotalView-ITCH data for a day. The
+    data is obtained for the open market time (9h40 to 15h50). To fill the time
+    spaces when nothing happens we replicate the last value calculated until a
+    change in the price happens.
+
+    :param ticker: string of the abbreviation of the stock to be analized
+     (i.e. 'AAPL').
+    :param date: string with the date of the data to be extracted
+     (i.e. '2008-01-02').
+    :return: tuple -- The function returns a tuple with numpy arrays.
+    """
+
+    date_sep = date.split('-')
+    year = date_sep[0]
+    month = date_sep[1]
+    day = date_sep[2]
+
+    try:
+
+        # Load data
+
+        data = np.genfromtxt(gzip.open(
+            f'../../itch_data/original_data_{year}/{year}{month}{day}'
+            + f'_{ticker}.csv.gz'), dtype='str', skip_header=1, delimiter=',')
+
+        # Lists of times, ids, types, volumes and prices
+        # List of all the available information in the data excluding the last
+        # two columns
+        times_ = np.array([int(mytime) for mytime in data[:, 0]])
+        ids_ = np.array([int(myid) for myid in data[:, 2]])
+
+        # List of order types:
+        # "B" = 1 - > Add buy order
+        # "S" = 2 - > Add sell order
+        # "E" = 3 - > Execute outstanding order in part
+        # "C" = 4 - > Cancel outstanding order in part
+        # "F" = 5 - > Execute outstanding order in full
+        # "D" = 6 - > Delete outstanding order in full
+        # "X" = 7 - > Bulk volume for the cross event
+        # "T" = 8 - > Execute non-displayed order
+
+        types_ = np.array([1 * (mytype == 'B') +
+                           2 * (mytype == 'S') +
+                           3 * (mytype == 'E') +
+                           4 * (mytype == 'C') +
+                           5 * (mytype == 'F') +
+                           6 * (mytype == 'D') +
+                           7 * (mytype == 'X') +
+                           8 * (mytype == 'T') for mytype in data[:, 3]])
+        prices_ = np.array([int(myprice) for myprice in data[:, 5]])
+
+        ids = ids_[types_ < 7]
+        times = times_[types_ < 7]
+        types = types_[types_ < 7]
+        prices = prices_[types_ < 7]
+
+        # Reference lists
+        # Reference lists using the original values or the length of the
+        # original lists
+        prices_ref = 1 * prices
+        types_ref = 0 * types
+        times_ref = 0 * times
+        index_ref = 0 * types
+        newids = {}
+        insertnr = {}
+        hv = 0
+
+        # Help lists with the data of the buy orders and sell orders
+        hv_prices = prices[types < 3]
+        hv_types = types[types < 3]
+        hv_times = times[types < 3]
+
+        # Fill the reference lists where the values of 'T' are 'E', 'C', 'F',
+        # 'D'
+        # For the data in the length of the ids list (all data)
+        for iii in range(len(ids)):
+
+            # If the data is a sell or buy order
+            if (types[iii] < 3):
+
+                # Insert in the dictionary newids a key with the valor of the
+                # id and the value of hv (a counter)
+                newids[ids[iii]] = hv
+
+                # Insert in the dictionary insertnr a key with the valor of the
+                # id and the value of the for counter
+                insertnr[ids[iii]] = iii
+
+                # Increase the value of hv
+                hv += 1
+
+            # If the data is not a sell or buy order
+            else:
+
+                # Fill the values of prices_ref with no prices ('E', 'C', 'F',
+                # 'D') with the price of the order
+                prices_ref[iii] = hv_prices[newids[ids[iii]]]
+                # Fill the values of types_ref with no  prices ('E', 'C', 'F',
+                # 'D') with the type of the order
+                types_ref[iii] = hv_types[newids[ids[iii]]]
+                # Fill the values of time_ref with no  prices ('E', 'C', 'F',
+                # 'D') with the time of the order
+                times_ref[iii] = hv_times[newids[ids[iii]]]
+                # Fill the values of index_ref with no  prices ('E', 'C', 'F',
+                # 'D') with the position of the sell or buy order
+                index_ref[iii] = insertnr[ids[iii]]
+
+        # Minimum and maximum trade price
+
+        # The minimum price allowed is 0.9 times the price of
+        # the minimum value of all full executed orders.
+        minP = round(0.9 * (1. * prices_ref[types == 5] / 10000).min(), 2)
+        # The maximum price allowed is 1.1 times the price of
+        # the maximum value of all full executed orders.
+        maxP = round(1.1 * (1. * prices_ref[types == 5] / 10000).max(), 2)
+        # Values between maxP and minP with step of 0.01 cents
+        valuesP = minP + 0.01 * np.arange(int((maxP - minP) / 0.01))
+        maxP = valuesP.max()
+
+        # Construct quotes and spread
+        # Sell values started at 0
+        nAsk = 0 * valuesP
+        # Last value of nAsk set to 1
+        nAsk[-1] = 1
+        # Buy values starte at 0
+        nBid = 0 * valuesP
+        # First value of nBid set to 1
+        nBid[0] = 1
+        # Set bestAsk and bestAskOld to a high value
+        bestAsk = 10000000.
+        bestAskOld = 10000000.
+        # Set bestBid and bestBidOld a low value
+        bestBid = 0.
+        bestBidOld = 0.
+        # Create lists for best asks, bids and times
+        bestAsks = []
+        bestBids = []
+        bestTimes = []
+
+        # Finding the best asks and best bids
+
+        # For the data in the length of the ids list (all data)
+        for iii in range(len(ids)):
+
+            # Incoming limit orders
+
+            myPriceIndex = int(round(1. * (1. * prices_ref[iii] / 10000 - minP)
+                               / 0.01))
+
+            # Initializing bestAksOld and bestBidOld
+            bestAskOld = 1 * bestAsk
+            bestBidOld = 1 * bestBid
+
+            # The price is greater than the minP
+            if (myPriceIndex >= 0 and
+                    myPriceIndex < len(valuesP)):
+
+                # If the order is a sell
+                if (types[iii] == 2):
+
+                    if (nAsk[myPriceIndex] == 0):
+
+                        # The bestAsk is the minimum value between the previous
+                        # bestAsk and the value in valuesP with id myPriceIndex
+                        bestAsk = min(bestAsk, valuesP[myPriceIndex])
+
+                    # Increase the value of nAsk to 1 (value arrived the book)
+                    nAsk[myPriceIndex] += 1
+
+                # If the order is a buy
+                if (types[iii] == 1):
+
+                    if (nBid[myPriceIndex] == 0):
+
+                        # The bestBid is the maximum value between the previous
+                        # bestBid and the value in valuesP with id myPriceIndex
+                        bestBid = max(bestBid, valuesP[myPriceIndex])
+
+                    # Increase the value of nBid to 1 (value arrived the book)
+                    nBid[myPriceIndex] += 1
+
+                # limit orders completely leaving
+
+                # If the order is a full executed order or if the order is a
+                # full delete order
+                if (types[iii] == 5
+                        or types[iii] == 6):
+
+                    # If the order is a sell
+                    if (types_ref[iii] == 2):
+
+                        # Reduce the value in nAsk to 0 (value left the book)
+                        nAsk[myPriceIndex] -= 1
+
+                        # If the value is not in the book and if the value is
+                        # the best ask
+                        if (nAsk[myPriceIndex] == 0 and
+                                valuesP[myPriceIndex] == bestAsk):
+
+                            # The best ask is the minimum value of the prices
+                            # that are currently in the order book
+                            bestAsk = valuesP[nAsk > 0].min()
+
+                    else:
+
+                        # Reduce the value in nBid to 0 (value left the book)
+                        nBid[myPriceIndex] -= 1
+
+                        # If the value is not in the book and if the value is
+                        # the best bid
+                        if (nBid[myPriceIndex] == 0
+                                and valuesP[myPriceIndex] == bestBid):
+
+                            # The best bid is the maximum value of the prices
+                            # that are currently in the order book
+                            bestBid = valuesP[nBid > 0].max()
+
+            # If the bestAsk changes or and if the bestBid changes
+            if (bestAsk != bestAskOld
+                    or bestBid != bestBidOld):
+
+                # Append the values of bestTimes, bestAsks and bestBids
+                bestTimes.append(times[iii])
+                bestAsks.append(bestAsk)
+                bestBids.append(bestBid)
+                bestAskOld = bestAsk
+                bestBidOld = bestBid
+
+        # Calculating the spread, midpoint and time
+
+        # Calculating the spread
+        spread_ = np.array(bestAsks) - np.array(bestBids)
+        # Transforming bestTimes in an array
+        timesS = np.array(bestTimes)
+        midpoint_ = 1. * (np.array(bestAsks) + np.array(bestBids)) / 2
+
+        # Setting the values in the open market time
+
+        # This line behaves as an or the two arrays must achieve a condition,
+        # in this case, be in the market trade hours
+        day_times_ind = (1. * timesS / 3600 / 1000 > 9.5) * \
+                        (1. * timesS / 3600 / 1000 < 16) > 0
+
+        # Midpoint in the market trade hours
+        midpoint = 1. * midpoint_[day_times_ind]
+        # Time converted to hours in the market trade hours
+        times_spread = 1. * timesS[day_times_ind]
+        bestAsks = np.array(bestAsks)[day_times_ind]
+        bestBids = np.array(bestBids)[day_times_ind]
+        # Spread in the market trade hours
+        spread = spread_[day_times_ind]
+
+        return (times_spread, midpoint, bestAsks, bestBids, spread)
+
+    except AssertionError:
+        print('No data')
+        print()
+        return None
+
+# -----------------------------------------------------------------------------
+
+
+def itch_midpoint_second_data(ticker, date):
+    """Reduces the midpoint price data from milliseconds to seconds for a day.
+
+    :param ticker: string of the abbreviation of the stock to be analized
+     (i.e. 'AAPL').
+    :param date: string with the date of the data to be extracted
+     (i.e. '2008-01-02').
+    :return: tuple -- The function returns a tuple with numpy arrays.
+    """
+
+    date_sep = date.split('-')
+    year = date_sep[0]
+    month = date_sep[1]
+    day = date_sep[2]
+
+    function_name = itch_midpoint_second_data.__name__
+    itch_data_tools_data_extraction \
+        .itch_function_header_print_data(function_name, ticker, ticker, year,
+                                         month, day)
+
+    # Extract data
+    (time_ms, midpoint_ms,
+        _, _, _) = itch_midpoint_millisecond_data(ticker, date)
+
+    # Market time in seconds
+    full_time = np.array(range(34800, 57000))
+    midpoint_s = np.zeros(len(full_time))
+
+    for t_idx, t_val in enumerate(full_time):
+
+        # Select the last midpoint price of every second
+        condition = (time_ms >= t_val * 1000) * (time_ms < (t_val + 1) * 1000)
+
+        if (np.sum(condition)):
+            midpoint_s[t_idx] = midpoint_ms[condition][-1]
+        else:
+            midpoint_s[t_idx] = midpoint_s[t_idx - 1]
+
+    assert not np.sum(midpoint_s == 0)
+
+    # Saving data
+    itch_data_tools_data_extraction \
+        .itch_save_data(function_name, (full_time, midpoint_s), ticker, ticker,
+                        year, month, day)
+
+    return (full_time, midpoint_s)
+
+# -----------------------------------------------------------------------------
+
+
+def itch_trade_signs_millisecond_data(ticker, date):
+    """Obtain the trade signs data for a day in milliseconds.
+
+    Extracts the trade signs from the TotalView-ITCH data for a day. The
+    data is obtained for the open market time (9h40 to 15h50). To fill the time
+    spaces when nothing happens we replicate the last value calculated until a
+    change in the price happens.
+
+    :param ticker: string of the abbreviation of the stock to be analized
+     (i.e. 'AAPL').
+    :param date: string with the date of the data to be extracted
+     (i.e. '2008-01-02').
+    :return: tuple -- The function returns a tuple with numpy arrays.
+    """
+
+    pass
+
+# -----------------------------------------------------------------------------
+
+
+def itch_trade_signs_second_data(ticker, date):
+    pass
+
+
+# -----------------------------------------------------------------------------
+
+
+def main():
+    """The main function of the script.
+
+    The main function is used to test the functions in the script.
+
+    :return: None.
+    """
+
+    time, midpoint = itch_midpoint_second_data('AAPL', '2008-01-07')
+
+    return None
+
+# -----------------------------------------------------------------------------
+
+
+if __name__ == "__main__":
+    main()
