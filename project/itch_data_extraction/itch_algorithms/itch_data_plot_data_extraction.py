@@ -5,8 +5,6 @@ itch_data_analysis_data_extraction module.
 
 This script requires the following modules:
     * matplotlib
-    * numpy
-    * os
     * pickle
     * itch_data_tools_data_extract
 
@@ -22,8 +20,6 @@ The module contains the following functions:
 # Modules
 
 from matplotlib import pyplot as plt
-import numpy as np
-import os
 import pickle
 
 import itch_data_tools_data_extraction

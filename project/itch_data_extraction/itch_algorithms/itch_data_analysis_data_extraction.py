@@ -13,7 +13,10 @@ The module contains the following functions:
      milliseconds.
     * itch_midpoint_second_data - extracts the midpoint price of a day in
      seconds.
-    * itch_trade_signs_millisecond_data - extracts the trade signs of a day.
+    * itch_trade_signs_millisecond_data - extracts the trade signs of a day in
+     milliseconds.
+    * itch_trade_signs_second_data - extracts the trade signs of a day in
+     seconds.
     * main - the main function of the script.
 
 .. moduleauthor:: Juan Camilo Henao Londono <www.github.com/juanhenao21>
@@ -323,6 +326,8 @@ def itch_midpoint_second_data(ticker, date):
         _, _, _) = itch_midpoint_millisecond_data(ticker, date)
 
     # Market time in seconds
+    # Reproducing the paper time values. In the results the time interval
+    # for the midpoint is [34800, 56999]
     full_time = np.array(range(34800, 57000))
     midpoint_s = np.zeros(len(full_time))
 
@@ -520,7 +525,9 @@ def itch_trade_signs_second_data(ticker, date):
         _, _) = itch_trade_signs_millisecond_data(ticker, date)
 
     # Market time in seconds
-    full_time = np.array(range(34800, 57000))
+    # Reproducing the paper time values. In her results the time interval
+    # for the trade signs is [34801, 57000]
+    full_time = np.array(range(34801, 57001))
     trade_signs_s = np.zeros(len(full_time))
 
     for t_idx, t_val in enumerate(full_time):

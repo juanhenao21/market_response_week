@@ -5,7 +5,6 @@ The functions in the module extract and plot of the ITCH data.
 This script requires the following modules:
     * itertools.product
     * multiprocessing
-    * pandas
     * itch_data_analysis_data_extraction
     * itch_data_plot_data_extraction
     * itch_data_tools_data_extraction
