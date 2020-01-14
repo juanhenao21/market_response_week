@@ -9,6 +9,7 @@ This script requires the following modules:
     * multiprocessing
     * numpy
     * pandas
+    * pickle
     * itch_data_tools_responses_second
 
 The module contains the following functions:

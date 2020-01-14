@@ -14,7 +14,6 @@ The module contains the following functions:
     * itch_save_plot - saves figures.
     * itch_function_header_print_data - prints info about the function running.
     * itch_function_header_print_plot - prints info about the plot.
-    * itch_start_folders - creates folders to save data and plots.
     * main - the main function of the script.
 
 .. moduleauthor:: Juan Camilo Henao Londono <www.github.com/juanhenao21>

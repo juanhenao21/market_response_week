@@ -27,12 +27,14 @@ import itch_data_tools_responses_second
 # ----------------------------------------------------------------------------
 
 
-def itch_self_response_week_avg_responses_second_plot(ticker, year):
+def itch_self_response_week_avg_responses_second_plot(ticker, year, week):
     """Plots the self-response average for a week.
 
     :param ticker: string of the abbreviation of the stock to be analized
      (i.e. 'AAPL').
     :param year: string of the year to be analized (i.e '2008').
+    :param week: string with the number of the first day of the week
+     (i.e. '03').
     :return: None -- The function saves the plot in a file and does not return
      a value.
     """
@@ -55,7 +57,7 @@ def itch_self_response_week_avg_responses_second_plot(ticker, year):
         figure = plt.figure(figsize=(16, 9))
         plt.semilogx(self_, linewidth=5, label=f'{ticker}')
         plt.legend(loc='best', fontsize=25)
-        plt.title(f'Self-response - {year}', fontsize=40)
+        plt.title(f'ITCH Self-response - {year}', fontsize=40)
         plt.xlabel(r'$\tau \, [s]$', fontsize=35)
         plt.ylabel(r'$R_{ii}(\tau)$', fontsize=35)
         plt.xticks(fontsize=25)
@@ -68,7 +70,8 @@ def itch_self_response_week_avg_responses_second_plot(ticker, year):
 
         # Plotting
         itch_data_tools_responses_second \
-            .itch_save_plot(function_name, figure, ticker, ticker, year, '')
+            .itch_save_plot(f'{function_name}_{week}', figure, ticker, ticker,
+                            year, '')
 
         return None
 
