@@ -65,7 +65,7 @@ def taq_data_plot_generator(tickers, dates, week):
 
         # Plot
         taq_data_plot_responses_second \
-            .taq_midpoint_second_plot(ticker, dates)
+            .taq_midpoint_second_plot(ticker, dates, week)
         taq_data_plot_responses_second \
             .taq_self_response_week_avg_responses_second_plot(ticker, year,
                                                               week)
