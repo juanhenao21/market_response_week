@@ -52,11 +52,12 @@ def itch_save_data(function_name, data, ticker_i, ticker_j, year, month, day):
     # Saving data
 
     if (not os.path.isdir(
-            f'../../itch_data/responses_second_{year}/{function_name}/')):
+            f'../../itch_data/responses_second_data_{year}/{function_name}/')):
 
         try:
             os.mkdir(
-                f'../../itch_data/responses_second_{year}/{function_name}/')
+                f'../../itch_data/responses_second_data_{year}/'
+                + f'{function_name}/')
             print('Folder to save data created')
 
         except FileExistsError:
@@ -65,14 +66,14 @@ def itch_save_data(function_name, data, ticker_i, ticker_j, year, month, day):
     # Cross-response data
     if (ticker_i != ticker_j):
 
-        pickle.dump(data, open(f'../../itch_data/responses_second_{year}'
+        pickle.dump(data, open(f'../../itch_data/responses_second_data_{year}'
                     + f'/{function_name}/{function_name}_{year}{month}{day}'
                     + f'_{ticker_i}i_{ticker_j}j.pickle', 'wb'))
 
     # Self-response data
     else:
 
-        pickle.dump(data, open(f'../../itch_data/responses_second_{year}'
+        pickle.dump(data, open(f'../../itch_data/responses_second_data_{year}'
                     + f'/{function_name}/{function_name}_{year}{month}{day}'
                     + f'_{ticker_i}.pickle', 'wb'))
 
@@ -105,10 +106,11 @@ def itch_save_plot(function_name, figure, ticker_i, ticker_j, year, month):
     # Saving plot data
 
     if (not os.path.isdir(
-            f'../../plots/itch_responses_second_{year}/{function_name}/')):
+            f'../../plots/itch_responses_second_plot_{year}/'
+            + f'{function_name}/')):
 
         try:
-            os.mkdir(f'../../plots/itch_responses_second_{year}/'
+            os.mkdir(f'../../plots/itch_responses_second_plot_{year}/'
                      + f'{function_name}/')
             print('Folder to save data created')
 
@@ -118,14 +120,14 @@ def itch_save_plot(function_name, figure, ticker_i, ticker_j, year, month):
     # Cross-response data
     if (ticker_i != ticker_j):
 
-        figure.savefig(f'../../plots/itch_responses_second_{year}/'
+        figure.savefig(f'../../plots/itch_responses_second_plot_{year}/'
                        + f'{function_name}/{function_name}_{year}{month}'
                        + f'_{ticker_i}i_{ticker_j}j.png')
 
     # Self-response
     else:
 
-        figure.savefig(f'../../plots/itch_responses_second_{year}/'
+        figure.savefig(f'../../plots/itch_responses_second_plot_{year}/'
                        + f'{function_name}/{function_name}_{year}{month}'
                        + f'_{ticker_i}i.png')
 
