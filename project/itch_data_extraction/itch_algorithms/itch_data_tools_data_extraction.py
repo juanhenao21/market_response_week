@@ -108,10 +108,11 @@ def itch_save_plot(function_name, figure, ticker_i, ticker_j, year, month):
     # Saving plot data
 
     if (not os.path.isdir(
-            f'../../plots/data_extraction_{year}/{function_name}/')):
+            f'../../plots/itch_data_extraction_{year}/{function_name}/')):
 
         try:
-            os.mkdir(f'../../plots/data_extraction_{year}/{function_name}/')
+            os.mkdir(f'../../plots/itch_data_extraction_{year}/'
+                     + f'{function_name}/')
             print('Folder to save data created')
 
         except FileExistsError:
@@ -120,15 +121,16 @@ def itch_save_plot(function_name, figure, ticker_i, ticker_j, year, month):
     # Cross-response data
     if (ticker_i != ticker_j):
 
-        figure.savefig(f'../../plots/data_extraction_{year}/{function_name}'
-                       + f'/{function_name}_{year}{month}_{ticker_i}i'
-                       + f'_{ticker_j}j.png')
+        figure.savefig(f'../../plots/itch_data_extraction_{year}/'
+                       + f'{function_name}/{function_name}_{year}{month}'
+                       + f'_{ticker_i}i_{ticker_j}j.png')
 
     # Self-response
     else:
 
-        figure.savefig(f'../../plots/data_extraction_{year}/{function_name}'
-                       + f'/{function_name}_{year}{month}_{ticker_i}i.png')
+        figure.savefig(f'../../plots/itch_data_extraction_{year}/'
+                       + f'{function_name}/{function_name}_{year}{month}'
+                       + f'_{ticker_i}i.png')
 
     print('Plot saved')
     print()
