@@ -9,8 +9,11 @@ This script requires the following modules:
     * itch_data_tools_data_extract
 
 The module contains the following functions:
-    * itch_midpoint_data - extracts the midpoint price of a day.
-    * itch_trade_signs_data - extracts the trade signs of a day.
+    * itch_midpoint_millisecond_data - extracts the midpoint price of a day in
+     milliseconds.
+    * itch_midpoint_second_data - extracts the midpoint price of a day in
+     seconds.
+    * itch_trade_signs_millisecond_data - extracts the trade signs of a day.
     * main - the main function of the script.
 
 .. moduleauthor:: Juan Camilo Henao Londono <www.github.com/juanhenao21>
@@ -53,7 +56,6 @@ def itch_midpoint_millisecond_data(ticker, date):
     try:
 
         # Load data
-
         data = np.genfromtxt(gzip.open(
             f'../../itch_data/original_data_{year}/{year}{month}{day}'
             + f'_{ticker}.csv.gz'), dtype='str', skip_header=1, delimiter=',')
@@ -287,8 +289,9 @@ def itch_midpoint_millisecond_data(ticker, date):
 
         return (times_spread, midpoint, bestAsks, bestBids, spread)
 
-    except AssertionError:
+    except FileNotFoundError as e:
         print('No data')
+        print(e)
         print()
         return None
 
@@ -350,8 +353,8 @@ def itch_trade_signs_millisecond_data(ticker, date):
 
     Extracts the trade signs from the TotalView-ITCH data for a day. The
     data is obtained for the open market time (9h40 to 15h50). To fill the time
-    spaces when nothing happens we replicate the last value calculated until a
-    change in the price happens.
+    spaces when nothing happens we just fill with zeros indicating that there
+    were neither a buy nor a sell.
 
     :param ticker: string of the abbreviation of the stock to be analized
      (i.e. 'AAPL').
@@ -360,14 +363,179 @@ def itch_trade_signs_millisecond_data(ticker, date):
     :return: tuple -- The function returns a tuple with numpy arrays.
     """
 
-    pass
+    date_sep = date.split('-')
+    year = date_sep[0]
+    month = date_sep[1]
+    day = date_sep[2]
+
+    try:
+
+        # Load full data using cols with values time, order, type, shares and
+        # price
+        data = pd.read_csv(gzip.open(
+            f'../../itch_data/original_data_{year}/{year}{month}{day}_{ticker}'
+            + f'.csv.gz', 'rt'), usecols=(0, 2, 3, 4, 5),
+            dtype={'Time': 'uint32', 'Order': 'uint64', 'T': str,
+                   'Shares': 'uint16', 'Price': 'float64'})
+
+        data['Price'] = data['Price'] / 10000
+
+        # Select only trade orders. Visible ('E' and 'F') and hidden ('T')
+        trade_pos = np.array(data['T'] == 'E') + np.array(data['T'] == 'F') \
+            + np.array(data['T'] == 'T')
+        trade_data = data[trade_pos]
+
+        # Converting the data in numpy arrays
+        trade_data_time = trade_data['Time'].values
+        trade_data_order = trade_data['Order'].values
+        trade_data_types = 3 * np.array(trade_data['T'] == 'E') \
+            + 4 * np.array(trade_data['T'] == 'F') \
+            + 5 * np.array(trade_data['T'] == 'T')
+        trade_data_volume = trade_data['Shares'].values
+        trade_data_price = trade_data['Price'].values
+
+        # Select only limit orders
+        limit_pos = np.array(data['T'] == 'B') + np.array(data['T'] == 'S')
+        limit_data = data[limit_pos]
+
+        # Reduce the values to only the ones that have the same order number as
+        # trade orders
+        limit_data = limit_data[limit_data.Order.isin(trade_data['Order'])]
+
+        # Converting the data in numpy arrays
+        limit_data_order = limit_data['Order'].values
+        limit_data_types = 1 * np.array(limit_data['T'] == 'S') \
+            - 1 * np.array(limit_data['T'] == 'B')
+        limit_data_volume = limit_data['Shares'].values
+        limit_data_price = limit_data['Price'].values
+
+        # Arrays to store the info of the identified trades
+        length_trades = len(trade_data)
+        trade_times = 1 * trade_data_time
+        trade_signs = np.zeros(length_trades)
+        trade_volumes = np.zeros(length_trades, dtype='uint16')
+        trade_price = np.zeros(length_trades)
+
+        # In the for loop is assigned the price, trade sign and volume of each
+        # trade.
+        for t_idx in range(length_trades):
+
+            try:
+
+                # limit orders that have the same order as the trade order
+                l_idx = np.where(limit_data_order
+                                 == trade_data_order[t_idx])[0][0]
+
+                # Save values that are independent of the type
+                # Price of the trade (Limit data)
+                trade_price[t_idx] = limit_data_price[l_idx]
+
+                # Trade sign identification
+                trade = limit_data_types[l_idx]
+
+                if (trade == 1):
+                    trade_signs[t_idx] = 1.
+                else:
+                    trade_signs[t_idx] = -1.
+
+                # The volume depends on the trade type. If it is 4 the
+                # value is taken from the limit data and the order number
+                # is deleted from the data. If it is 3 the
+                # value is taken from the trade data and then the
+                # value of the volume in the limit data must be
+                # reduced with the value of the trade data
+                volume_type = trade_data_types[t_idx]
+
+                if (volume_type == 4):
+
+                    trade_volumes[t_idx] = limit_data_volume[l_idx]
+                    limit_data_order[l_idx] = 0
+
+                else:
+
+                    trade_volumes[t_idx] = trade_data_volume[t_idx]
+                    diff_volumes = limit_data_volume[l_idx] \
+                        - trade_data_volume[t_idx]
+
+                    assert diff_volumes > 0
+
+                    limit_data_volume[l_idx] = diff_volumes
+
+            except IndexError:
+
+                pass
+
+        assert len(trade_signs != 0) == len(trade_data_types != 5)
+
+        # To use the hidden trades, I change the values in the computed arrays
+        # with # the information of visible trades to have the hidden
+        # information.
+        hidden_pos = trade_data_types == 5
+        trade_volumes[hidden_pos] = trade_data_volume[hidden_pos]
+        trade_price[hidden_pos] = trade_data_price[hidden_pos]
+
+        # Open market time 9h40 - 15h50
+        market_time = (trade_times / 3600 / 1000 >= 9.5) & \
+            (trade_times / 3600 / 1000 < 16)
+
+        trade_times_market = trade_times[market_time]
+        trade_signs_market = trade_signs[market_time]
+        trade_volumes_market = trade_volumes[market_time]
+        trade_price_market = trade_price[market_time]
+
+        return (trade_times_market, trade_signs_market, trade_volumes_market,
+                trade_price_market)
+
+    except FileNotFoundError as e:
+        print('No data')
+        print(e)
+        print()
+        return None
 
 # -----------------------------------------------------------------------------
 
 
 def itch_trade_signs_second_data(ticker, date):
-    pass
+    """Reduces the trade signs data from milliseconds to seconds for a day.
 
+    :param ticker: string of the abbreviation of the stock to be analized
+     (i.e. 'AAPL').
+    :param date: string with the date of the data to be extracted
+     (i.e. '2008-01-02').
+    :return: tuple -- The function returns a tuple with numpy arrays.
+    """
+
+    date_sep = date.split('-')
+    year = date_sep[0]
+    month = date_sep[1]
+    day = date_sep[2]
+
+    function_name = itch_trade_signs_second_data.__name__
+    itch_data_tools_data_extraction \
+        .itch_function_header_print_data(function_name, ticker, ticker, year,
+                                         month, day)
+
+    # Extract data
+    (time_ms, trade_signs_ms,
+        _, _) = itch_trade_signs_millisecond_data(ticker, date)
+
+    # Market time in seconds
+    full_time = np.array(range(34800, 57000))
+    trade_signs_s = np.zeros(len(full_time))
+
+    for t_idx, t_val in enumerate(full_time):
+
+        # take the sign function of the sum of every second
+        condition = (time_ms >= t_val * 1000) * (time_ms < (t_val + 1) * 1000)
+        trade_sum = np.sum(trade_signs_ms[condition])
+        trade_signs_s[t_idx] = np.sign(trade_sum)
+
+    # Saving data
+    itch_data_tools_data_extraction \
+        .itch_save_data(function_name, (full_time, trade_signs_s), ticker,
+                        ticker, year, month, day)
+
+    return (full_time, trade_signs_s)
 
 # -----------------------------------------------------------------------------
 
@@ -380,9 +548,7 @@ def main():
     :return: None.
     """
 
-    time, midpoint = itch_midpoint_second_data('AAPL', '2008-01-07')
-
-    return None
+    pass
 
 # -----------------------------------------------------------------------------
 
