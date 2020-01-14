@@ -6,8 +6,8 @@ in the modules that use them.
 
 This script requires the following modules:
     * matplotlib
-    * numpy
-    * pandas
+    * os
+    * pickle
 
 The module contains the following functions:
     * itch_save_data - saves computed data.
@@ -24,11 +24,8 @@ The module contains the following functions:
 # Modules
 
 from matplotlib import pyplot as plt
-import numpy as np
 import os
-import pandas as pd
 import pickle
-import subprocess
 
 # -----------------------------------------------------------------------------
 
