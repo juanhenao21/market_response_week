@@ -131,7 +131,7 @@ dmypy.json
 # Folders
 project/taq_data
 project/itch_data
-project/plot
+project/plots
 
 .vscode/
 
