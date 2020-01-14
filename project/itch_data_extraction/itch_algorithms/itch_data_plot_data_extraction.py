@@ -63,7 +63,7 @@ def itch_midpoint_second_plot(ticker, dates):
 
             plt.plot(time, midpoint, linewidth=5, label=f'{date}')
             plt.legend(loc='best', fontsize=25)
-            plt.title(f'Midpoint price - {ticker}', fontsize=40)
+            plt.title(f'ITCH Midpoint price - {ticker}', fontsize=40)
             plt.xlabel(r'Time $[s]$', fontsize=35)
             plt.ylabel(r'$m(t)$', fontsize=35)
             plt.xticks(fontsize=25)
