@@ -39,6 +39,9 @@ def itch_midpoint_second_plot(ticker, dates):
     """
 
     year_ = dates[0].split('-')[0]
+    month = dates[0].split('-')[1]
+    day_ini_ = dates[0].split('-')[2]
+    day_fin_ = dates[-1].split('-')[2]
 
     try:
         function_name = itch_midpoint_second_plot.__name__
@@ -63,18 +66,20 @@ def itch_midpoint_second_plot(ticker, dates):
 
             plt.plot(time, midpoint, linewidth=5, label=f'{date}')
             plt.legend(loc='best', fontsize=25)
-            plt.title(f'ITCH Midpoint price - {ticker}', fontsize=40)
             plt.xlabel(r'Time $[s]$', fontsize=35)
             plt.ylabel(r'$m(t)$', fontsize=35)
             plt.xticks(fontsize=25)
             plt.yticks(fontsize=25)
 
+        plt.title(f'ITCH Midpoint price - {ticker} - {year_}.{month}'
+                  + f'.{day_ini_}/{day_fin_}', fontsize=40)
         plt.grid(True)
         plt.tight_layout()
 
         # Plotting
         itch_data_tools_data_extraction \
-            .itch_save_plot(function_name, figure, ticker, ticker, year, '')
+            .itch_save_plot(f'{function_name}_{month}', figure, ticker, ticker,
+                            year, '')
 
         return None
 
