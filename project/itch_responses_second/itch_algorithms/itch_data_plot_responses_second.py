@@ -27,37 +27,42 @@ import itch_data_tools_responses_second
 # ----------------------------------------------------------------------------
 
 
-def itch_self_response_week_avg_responses_second_plot(ticker, year, week):
+def itch_self_response_week_avg_responses_second_plot(ticker, dates):
     """Plots the self-response average for a week.
 
     :param ticker: string of the abbreviation of the stock to be analized
      (i.e. 'AAPL').
-    :param year: string of the year to be analized (i.e '2008').
-    :param week: string with the number of the first day of the week
-     (i.e. '03').
+    :param dates: list of strings with the date of the data to be extracted
+     (i.e. ['2008-01-02', '2008-01-03]).
     :return: None -- The function saves the plot in a file and does not return
      a value.
     """
+
+    year_ = dates[0].split('-')[0]
+    month = dates[0].split('-')[1]
+    day_ini_ = dates[0].split('-')[2]
+    day_fin_ = dates[-1].split('-')[2]
 
     try:
         function_name = itch_self_response_week_avg_responses_second_plot \
             .__name__
         itch_data_tools_responses_second \
             .itch_function_header_print_plot(function_name, ticker, ticker,
-                                             year, '', '')
+                                             year_, '', '')
 
         # Load data
         self_ = pickle.load(open(
-                        f'../../itch_data/responses_second_data_{year}/'
+                        f'../../itch_data/responses_second_data_{year_}/'
                         + f'itch_self_response_week_responses_second_data/'
                         + f'itch_self_response_week_responses_second_data'
-                        + f'_{year}_{ticker}.pickle',
+                        + f'_{year_}_{ticker}.pickle',
                         'rb'))
 
         figure = plt.figure(figsize=(16, 9))
         plt.semilogx(self_, linewidth=5, label=f'{ticker}')
         plt.legend(loc='best', fontsize=25)
-        plt.title(f'ITCH Self-response - {year}', fontsize=40)
+        plt.title(f'ITCH Self-response - {ticker} - {year_}.{month}'
+                  + f'.{day_ini_}/{day_fin_}', fontsize=40)
         plt.xlabel(r'$\tau \, [s]$', fontsize=35)
         plt.ylabel(r'$R_{ii}(\tau)$', fontsize=35)
         plt.xticks(fontsize=25)
@@ -70,8 +75,8 @@ def itch_self_response_week_avg_responses_second_plot(ticker, year, week):
 
         # Plotting
         itch_data_tools_responses_second \
-            .itch_save_plot(f'{function_name}_{week}', figure, ticker, ticker,
-                            year, '')
+            .itch_save_plot(f'{function_name}_{month}', figure, ticker, ticker,
+                            year_, '')
 
         return None
 
