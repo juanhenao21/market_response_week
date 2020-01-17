@@ -428,7 +428,7 @@ def taq_self_response_week_responses_second_data(ticker, dates):
 
     # Saving data
     taq_data_tools_responses_second \
-        .taq_save_data(f"{function_name}_{dates[0].split('-')[-1]}",
+        .taq_save_data(f"{function_name}_{dates[0].split('-')[1]}",
                        self_response_val, ticker, ticker, year, '', '')
 
     return (self_response_val, self_response_avg)

@@ -30,15 +30,13 @@ import taq_data_tools_responses_second
 # -----------------------------------------------------------------------------
 
 
-def taq_data_plot_generator(tickers, dates, week):
+def taq_data_plot_generator(tickers, dates):
     """Generates all the analysis and plots from the TAQ data.
 
     :param tickers: list of the string abbreviation of the stocks to be
      analized (i.e. ['AAPL', 'MSFT']).
     :param dates: list of strings with the date of the data to be extracted
      (i.e. ['2008-01-02', '2008-01-03]).
-    :param week: string with the number of the first day of the week
-     (i.e. '03').
     :return: None -- The function saves the data in a file and does not return
      a value.
     """
@@ -57,18 +55,15 @@ def taq_data_plot_generator(tickers, dates, week):
     # Especific functions
     for ticker in tickers:
 
-        year = dates[0].split('-')[0]
-
         # Self-response
         taq_data_analysis_responses_second \
             .taq_self_response_week_responses_second_data(ticker, dates)
 
         # Plot
         taq_data_plot_responses_second \
-            .taq_midpoint_second_plot(ticker, dates, week)
+            .taq_midpoint_second_plot(ticker, dates)
         taq_data_plot_responses_second \
-            .taq_self_response_week_avg_responses_second_plot(ticker, year,
-                                                              week)
+            .taq_self_response_week_avg_responses_second_plot(ticker, dates)
 
     return None
 
@@ -91,8 +86,8 @@ def main():
                     '2008-03-07']
 
     # Run analysis
-    taq_data_plot_generator(tickers, dates_2008_a, '07')
-    taq_data_plot_generator(tickers, dates_2008_b, '03')
+    taq_data_plot_generator(tickers, dates_2008_a)
+    taq_data_plot_generator(tickers, dates_2008_b)
 
     print('Ay vamos!!')
 

@@ -27,26 +27,27 @@ import taq_data_tools_responses_second
 # ----------------------------------------------------------------------------
 
 
-def taq_midpoint_second_plot(ticker, dates, week):
+def taq_midpoint_second_plot(ticker, dates):
     """Plots the midpoint price in second scale for a day.
 
     :param ticker: string of the abbreviation of the stock to be analized
      (i.e. 'AAPL').
     :param dates: list of strings with the date of the data to be extracted
      (i.e. ['2008-01-02', '2008-01-03]).
-    :param week: string with the number of the first day of the week
-     (i.e. '03').
     :return: None -- The function saves the plot in a file and does not return
      a value.
     """
 
-    year_ = dates[0].split('-')[0]
+    year = dates[0].split('-')[0]
+    month = dates[0].split('-')[1]
+    day_ini_ = dates[0].split('-')[2]
+    day_fin_ = dates[-1].split('-')[2]
 
     try:
         function_name = taq_midpoint_second_plot.__name__
         taq_data_tools_responses_second \
             .taq_function_header_print_plot(function_name, ticker, ticker,
-                                            year_, '', '')
+                                            year, '', '')
 
         figure = plt.figure(figsize=(16, 9))
 
@@ -68,18 +69,19 @@ def taq_midpoint_second_plot(ticker, dates, week):
 
             plt.plot(time, midpoint, linewidth=5, label=f'{date}')
             plt.legend(loc='best', fontsize=25)
-            plt.title(f'TAQ Midpoint price - {ticker}', fontsize=40)
             plt.xlabel(r'Time $[s]$', fontsize=35)
             plt.ylabel(r'$m(t)$', fontsize=35)
             plt.xticks(fontsize=25)
             plt.yticks(fontsize=25)
 
+        plt.title(f'TAQ Midpoint price - {ticker} - {year}.{month}'
+                  + f'.{day_ini_}/{day_fin_}', fontsize=40)
         plt.grid(True)
         plt.tight_layout()
 
         # Plotting
         taq_data_tools_responses_second \
-            .taq_save_plot(f'{function_name}_{week}', figure, ticker, ticker,
+            .taq_save_plot(f'{function_name}_{month}', figure, ticker, ticker,
                            year, '')
 
         return None
@@ -93,17 +95,21 @@ def taq_midpoint_second_plot(ticker, dates, week):
 # ----------------------------------------------------------------------------
 
 
-def taq_self_response_week_avg_responses_second_plot(ticker, year, week):
+def taq_self_response_week_avg_responses_second_plot(ticker, dates):
     """Plots the self-response average for a year.
 
     :param ticker: string of the abbreviation of the stock to be analized
      (i.e. 'AAPL').
-    :param year: string of the year to be analized (i.e '2008').
-    :param week: string with the number of the first day of the week
-     (i.e. '03').
+    :param dates: list of strings with the date of the data to be extracted
+     (i.e. ['2008-01-02', '2008-01-03]).
     :return: None -- The function saves the plot in a file and does not return
      a value.
     """
+
+    year = dates[0].split('-')[0]
+    month = dates[0].split('-')[1]
+    day_ini_ = dates[0].split('-')[2]
+    day_fin_ = dates[-1].split('-')[2]
 
     try:
         function_name = taq_self_response_week_avg_responses_second_plot \
@@ -115,14 +121,15 @@ def taq_self_response_week_avg_responses_second_plot(ticker, year, week):
         # Load data
         self_ = pickle.load(open(
                         f'../../taq_data/responses_second_data_{year}/taq_self'
-                        + f'_response_week_responses_second_data_{week}/taq'
-                        + f'_self_response_week_responses_second_data_{week}'
+                        + f'_response_week_responses_second_data_{month}/taq'
+                        + f'_self_response_week_responses_second_data_{month}'
                         + f'_{year}_{ticker}.pickle', 'rb'))
 
         figure = plt.figure(figsize=(16, 9))
         plt.semilogx(self_, linewidth=5, label=f'{ticker}')
         plt.legend(loc='best', fontsize=25)
-        plt.title(f'TAQ Self-response - {year}', fontsize=40)
+        plt.title(f'TAQ Self-response - {ticker} - {year}.{month}'
+                  + f'.{day_ini_}/{day_fin_}', fontsize=40)
         plt.xlabel(r'$\tau \, [s]$', fontsize=35)
         plt.ylabel(r'$R_{ii}(\tau)$', fontsize=35)
         plt.xticks(fontsize=25)
@@ -135,7 +142,7 @@ def taq_self_response_week_avg_responses_second_plot(ticker, year, week):
 
         # Plotting
         taq_data_tools_responses_second \
-            .taq_save_plot(f'{function_name}_{week}', figure, ticker, ticker,
+            .taq_save_plot(f'{function_name}_{month}', figure, ticker, ticker,
                            year, '')
 
         return None
